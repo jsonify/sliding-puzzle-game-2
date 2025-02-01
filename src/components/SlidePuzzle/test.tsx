@@ -5,11 +5,34 @@ import { describe, it, expect } from 'vitest'
 
 describe('<SlidePuzzle />', () => {
   // Helper functions remain the same
-  const getPuzzleTiles = () => 
-    screen.getAllByRole('button').filter(button => 
-      button.getAttribute('aria-label')?.includes('Tile') || 
+  const getPuzzleTiles = () =>
+    screen.getAllByRole('button').filter(button =>
+      button.getAttribute('aria-label')?.includes('Tile') ||
       button.getAttribute('aria-label') === 'Empty tile'
     )
+
+  const getTileIds = (tiles: HTMLElement[]) =>
+    tiles
+      .map(tile => tile.getAttribute('aria-label'))
+      .filter(label => label?.includes('Tile'))
+      .map(label => Number(label?.replace('Tile ', '')))
+
+  it('initializes with a random permutation of the solution', () => {
+    render(<SlidePuzzle />)
+    
+    // Get initial board state
+    const initialTiles = getPuzzleTiles()
+    const initialTileIds = getTileIds(initialTiles)
+    
+    // Get solution state
+    const solutionTiles = screen.getAllByRole('button', { name: /solution/i })
+    const solutionTileIds = getTileIds(solutionTiles)
+    
+    // Verify same tiles but different order
+    expect(initialTileIds).toHaveLength(solutionTileIds.length)
+    expect(initialTileIds).toEqual(expect.arrayContaining(solutionTileIds))
+    expect(initialTileIds).not.toEqual(solutionTileIds)
+  })
 
   const getMovableTiles = () => 
     getPuzzleTiles().filter(tile => !(tile as HTMLButtonElement).disabled)
@@ -144,5 +167,30 @@ describe('<SlidePuzzle />', () => {
     const newEmptyTiles = getPuzzleTiles()
       .filter(tile => tile.getAttribute('aria-label') === 'Empty tile')
     expect(newEmptyTiles).toHaveLength(1)
+  })
+
+  it('initializes with exactly four tiles of each color', () => {
+    render(<SlidePuzzle />)
+    
+    const tiles = getPuzzleTiles()
+      .filter(tile => tile.getAttribute('aria-label') !== 'Empty tile')
+    
+    // Get all background colors
+    const colorCounts = new Map<string, number>()
+    tiles.forEach(tile => {
+      const classes = tile.className.split(' ')
+      const colorClass = classes.find(cls => cls.startsWith('bg-'))
+      if (colorClass) {
+        colorCounts.set(colorClass, (colorCounts.get(colorClass) || 0) + 1)
+      }
+    })
+
+    // Check that each color appears exactly 4 times
+    colorCounts.forEach((count, color) => {
+      expect(count).toBe(4)
+    })
+    
+    // Check that we have all 6 colors
+    expect(colorCounts.size).toBe(6)
   })
 })

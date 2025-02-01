@@ -36,27 +36,60 @@ const SlidePuzzle: React.FC = () => {
 
   // Initialize the puzzle board
   const initializeBoard = useCallback(() => {
-    const newBoard: (Tile | null)[][] = []
+    // Create an array of all tiles needed (4 of each color)
+    const tiles: Tile[] = []
     let id = 1
-
+    
+    // Add exactly 4 tiles of each color
+    COLORS.forEach(color => {
+      for (let i = 0; i < 4; i++) {
+        tiles.push({ id: id++, color })
+      }
+    })
+    
+    // Shuffle the tiles
+    for (let i = tiles.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[tiles[i], tiles[j]] = [tiles[j], tiles[i]]
+    }
+    
+    // Create sorted tiles for solution
+    const sortedTiles = [...tiles].sort((a, b) => a.id - b.id)
+    
+    // Create the board with randomized tiles
+    const newBoard: (Tile | null)[][] = []
+    let tileIndex = 0
+    
     for (let i = 0; i < GRID_SIZE; i++) {
       const row: (Tile | null)[] = []
       for (let j = 0; j < GRID_SIZE; j++) {
         if (i === GRID_SIZE - 1 && j === GRID_SIZE - 1) {
           row.push(null) // Empty tile
         } else {
-          row.push({
-            id,
-            color: COLORS[Math.floor(Math.random() * COLORS.length)]
-          })
-          id++
+          row.push(tiles[tileIndex++])
         }
       }
       newBoard.push(row)
     }
 
+    // Create the solution board with sorted tiles
+    const solutionBoard: (Tile | null)[][] = []
+    tileIndex = 0
+    
+    for (let i = 0; i < GRID_SIZE; i++) {
+      const row: (Tile | null)[] = []
+      for (let j = 0; j < GRID_SIZE; j++) {
+        if (i === GRID_SIZE - 1 && j === GRID_SIZE - 1) {
+          row.push(null) // Empty tile
+        } else {
+          row.push(sortedTiles[tileIndex++])
+        }
+      }
+      solutionBoard.push(row)
+    }
+
     setBoard(newBoard)
-    setSolution([...newBoard.map(row => [...row])])
+    setSolution(solutionBoard)
     setEmptyPosition({ row: GRID_SIZE - 1, col: GRID_SIZE - 1 })
   }, [])
 
@@ -176,13 +209,13 @@ const SlidePuzzle: React.FC = () => {
         <div className="grid grid-cols-5 gap-1">
           {solution.map((row, rowIndex) =>
             row.map((tile, colIndex) => (
-              <div
+              <button
                 key={`solution-${rowIndex}-${colIndex}`}
                 className={classNames(
                   'h-8 w-8 rounded-lg',
                   tile ? colorToTailwind[tile.color] : 'bg-gray-200'
                 )}
-                aria-hidden="true"
+                aria-label={tile ? `solution ${tile.id}` : 'Empty solution tile'}
               />
             ))
           )}
