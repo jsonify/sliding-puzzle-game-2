@@ -68,19 +68,56 @@ const SlidePuzzle: React.FC = () => {
   // Check if a tile can be moved
   const canMoveTile = (row: number, col: number): boolean => {
     return (
-      (Math.abs(row - emptyPosition.row) === 1 && col === emptyPosition.col) ||
-      (Math.abs(col - emptyPosition.col) === 1 && row === emptyPosition.row)
+      // Same row as empty space
+      (row === emptyPosition.row) ||
+      // Same column as empty space
+      (col === emptyPosition.col)
     )
   }
-
-  // Move a tile
+  
+  // Update the moveTile function:
   const moveTile = (row: number, col: number) => {
     if (!canMoveTile(row, col)) return
-
+  
     const newBoard = [...board.map(row => [...row])]
-    newBoard[emptyPosition.row][emptyPosition.col] = board[row][col]
-    newBoard[row][col] = null
-
+    
+    if (row === emptyPosition.row) {
+      if (col < emptyPosition.col) {
+        // Store clicked tile
+        const clickedTile = newBoard[row][col]
+        // Shift tiles left, starting from the empty position
+        for (let i = emptyPosition.col - 1; i >= col; i--) {
+          newBoard[row][i + 1] = newBoard[row][i]
+        }
+        // Place empty tile at clicked position
+        newBoard[row][col] = null
+      } else if (col > emptyPosition.col) {
+        // Store clicked tile
+        const clickedTile = newBoard[row][col]
+        // Shift tiles right, starting from the empty position
+        for (let i = emptyPosition.col + 1; i <= col; i++) {
+          newBoard[row][i - 1] = newBoard[row][i]
+        }
+        // Place empty tile at clicked position
+        newBoard[row][col] = null
+      }
+    } else if (col === emptyPosition.col) {
+      // Similar logic for vertical movement
+      if (row < emptyPosition.row) {
+        const clickedTile = newBoard[row][col]
+        for (let i = emptyPosition.row - 1; i >= row; i--) {
+          newBoard[i + 1][col] = newBoard[i][col]
+        }
+        newBoard[row][col] = null
+      } else if (row > emptyPosition.row) {
+        const clickedTile = newBoard[row][col]
+        for (let i = emptyPosition.row + 1; i <= row; i++) {
+          newBoard[i - 1][col] = newBoard[i][col]
+        }
+        newBoard[row][col] = null
+      }
+    }
+  
     setBoard(newBoard)
     setEmptyPosition({ row, col })
   }

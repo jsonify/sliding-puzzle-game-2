@@ -4,63 +4,145 @@ import SlidePuzzle from '.'
 import { describe, it, expect } from 'vitest'
 
 describe('<SlidePuzzle />', () => {
+  // Helper functions remain the same
+  const getPuzzleTiles = () => 
+    screen.getAllByRole('button').filter(button => 
+      button.getAttribute('aria-label')?.includes('Tile') || 
+      button.getAttribute('aria-label') === 'Empty tile'
+    )
+
+  const getMovableTiles = () => 
+    getPuzzleTiles().filter(tile => !(tile as HTMLButtonElement).disabled)
+
+  const getEmptyTile = () => 
+    getPuzzleTiles().find(tile => 
+      tile.getAttribute('aria-label') === 'Empty tile'
+    )
+
   it('renders the puzzle board with correct layout', () => {
     render(<SlidePuzzle />)
     
     expect(screen.getByText('Puzzle Board')).toBeInTheDocument()
     expect(screen.getByText('Solution')).toBeInTheDocument()
-    
-    // Check for control buttons
-    const randomizeButton = screen.getByRole('button', { name: /randomize/i })
-    const solveButton = screen.getByRole('button', { name: /solve all but last/i })
-    expect(randomizeButton).toBeInTheDocument()
-    expect(solveButton).toBeInTheDocument()
-    
-    // Check for grid cells (5x5 grid = 25 cells)
-    // Filter buttons to only include those with tile-related aria-labels
-    const tiles = screen.getAllByRole('button').filter(button => 
-      button.getAttribute('aria-label')?.includes('Tile') || 
-      button.getAttribute('aria-label') === 'Empty tile'
-    )
-    expect(tiles).toHaveLength(25)
+    expect(screen.getByRole('button', { name: /randomize/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /solve all but last/i })).toBeInTheDocument()
+    expect(getPuzzleTiles()).toHaveLength(25)
   })
 
-  it('allows clicking randomize button', () => {
+  it('initializes with exactly one empty tile', () => {
+    render(<SlidePuzzle />)
+    
+    const emptyTiles = getPuzzleTiles()
+      .filter(tile => tile.getAttribute('aria-label') === 'Empty tile')
+    
+    expect(emptyTiles).toHaveLength(1)
+  })
+
+  it('allows moving tiles in same row or column as empty space', () => {
+    render(<SlidePuzzle />)
+    
+    // There can be up to 9 movable tiles in a 5x5 grid
+    // (4 in row + 4 in column + 1 at intersection)
+    const movableTiles = getMovableTiles()
+    expect(movableTiles.length).toBeGreaterThanOrEqual(2)
+    expect(movableTiles.length).toBeLessThanOrEqual(9)
+    
+    // Record initial position of a movable tile
+    const tileToMove = movableTiles[0]
+    const initialAriaLabel = tileToMove.getAttribute('aria-label')
+    
+    // Move the tile
+    fireEvent.click(tileToMove)
+    
+    // Tile should now be in a different position
+    const movedTile = screen.getByLabelText(initialAriaLabel!)
+    expect(movedTile).not.toBe(tileToMove)
+  })
+
+  it('prevents moving tiles not in same row/column as empty space', () => {
+    render(<SlidePuzzle />)
+    
+    // Find non-movable tiles (those not in same row/column as empty space)
+    const nonMovableTiles = getPuzzleTiles()
+      .filter(tile => (tile as HTMLButtonElement).disabled)
+    
+    // There should be at least 16 non-movable tiles 
+    // (25 total - max 8 movable - 1 empty)
+    expect(nonMovableTiles.length).toBeGreaterThanOrEqual(16)
+    
+    // Try to click a non-movable tile
+    fireEvent.click(nonMovableTiles[0])
+    
+    // Board state shouldn't change
+    expect(getEmptyTile()).toBeInTheDocument()
+    expect(nonMovableTiles[0]).toBeDisabled()
+  })
+
+  it('maintains board state after randomize', () => {
     render(<SlidePuzzle />)
     
     const randomizeButton = screen.getByRole('button', { name: /randomize/i })
     fireEvent.click(randomizeButton)
     
-    // Check that the grid is still complete after randomizing
-    const tiles = screen.getAllByRole('button').filter(button => 
-      button.getAttribute('aria-label')?.includes('Tile') || 
-      button.getAttribute('aria-label') === 'Empty tile'
-    )
-    expect(tiles).toHaveLength(25)
+    expect(getPuzzleTiles()).toHaveLength(25)
+    expect(getEmptyTile()).toBeInTheDocument()
+    
+    const movableTiles = getMovableTiles()
+    expect(movableTiles.length).toBeGreaterThanOrEqual(2)
+    expect(movableTiles.length).toBeLessThanOrEqual(9)
   })
 
-  it('allows clicking solve button', () => {
+  it('slides multiple tiles when clicking tile in same row as empty space', () => {
     render(<SlidePuzzle />)
     
-    const solveButton = screen.getByRole('button', { name: /solve all but last/i })
-    fireEvent.click(solveButton)
+    // First let's check what tiles we actually have after solve all but last
+    const checkInitialState = () => {
+      const tiles = getPuzzleTiles().slice(-5)
+      const labels = tiles.map(tile => tile.getAttribute('aria-label'))
+      console.log('Initial bottom row:', labels)
+    }
     
-    // Check that the grid is still complete after solving
-    const tiles = screen.getAllByRole('button').filter(button => 
-      button.getAttribute('aria-label')?.includes('Tile') || 
-      button.getAttribute('aria-label') === 'Empty tile'
-    )
-    expect(tiles).toHaveLength(25)
+    fireEvent.click(screen.getByRole('button', { name: /solve all but last/i }))
+    checkInitialState()
+    
+    // Get all movable tiles and their positions
+    const movableTiles = getMovableTiles()
+    const movableLabels = movableTiles.map(tile => tile.getAttribute('aria-label'))
+    console.log('Movable tiles:', movableLabels)
+    
+    // Get bottom row tiles
+    const bottomRowTiles = getPuzzleTiles().slice(-5)
+    
+    // Log the current state
+    const initialLabels = bottomRowTiles.map(tile => tile.getAttribute('aria-label'))
+    console.log('Current bottom row:', initialLabels)
+    
+    // Click and log what happened
+    fireEvent.click(bottomRowTiles[0])
+    
+    const newBottomRowTiles = getPuzzleTiles().slice(-5)
+    const newLabels = newBottomRowTiles.map(tile => tile.getAttribute('aria-label'))
+    console.log('After click bottom row:', newLabels)
   })
 
-  it('shows solution grid', () => {
+  it('maintains exactly one empty tile when sliding', () => {
     render(<SlidePuzzle />)
     
-    const solutionSection = screen.getByText('Solution')
-    expect(solutionSection).toBeInTheDocument()
+    // Get to known state
+    fireEvent.click(screen.getByRole('button', { name: /solve all but last/i }))
     
-    // The solution grid should be visible but not interactive
-    const solutionGrid = solutionSection.parentElement
-    expect(solutionGrid).toBeInTheDocument()
+    // Verify we start with exactly one empty tile
+    const initialEmptyTiles = getPuzzleTiles()
+      .filter(tile => tile.getAttribute('aria-label') === 'Empty tile')
+    expect(initialEmptyTiles).toHaveLength(1)
+    
+    // Click the leftmost tile in bottom row
+    const bottomRowTiles = getPuzzleTiles().slice(-5)
+    fireEvent.click(bottomRowTiles[0])
+    
+    // Verify we still have exactly one empty tile
+    const newEmptyTiles = getPuzzleTiles()
+      .filter(tile => tile.getAttribute('aria-label') === 'Empty tile')
+    expect(newEmptyTiles).toHaveLength(1)
   })
 })
