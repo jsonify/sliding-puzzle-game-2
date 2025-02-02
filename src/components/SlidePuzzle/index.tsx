@@ -47,14 +47,23 @@ const SlidePuzzle: React.FC = () => {
       }
     })
     
-    // Shuffle the tiles
-    for (let i = tiles.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1))
-      ;[tiles[i], tiles[j]] = [tiles[j], tiles[i]]
+    // Fisher-Yates shuffle for better randomization
+    const shuffle = <T,>(array: T[]): T[] => {
+      const newArray = [...array]
+      for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]]
+      }
+      return newArray
     }
     
-    // Create sorted tiles for solution
+    // Keep shuffling until we get a different order than solution
+    let shuffledTiles: Tile[]
     const sortedTiles = [...tiles].sort((a, b) => a.id - b.id)
+    
+    do {
+      shuffledTiles = shuffle(tiles)
+    } while (shuffledTiles.every((tile, i) => tile.id === sortedTiles[i].id))
     
     // Create the board with randomized tiles
     const newBoard: (Tile | null)[][] = []
@@ -66,12 +75,12 @@ const SlidePuzzle: React.FC = () => {
         if (i === GRID_SIZE - 1 && j === GRID_SIZE - 1) {
           row.push(null) // Empty tile
         } else {
-          row.push(tiles[tileIndex++])
+          row.push(shuffledTiles[tileIndex++])
         }
       }
       newBoard.push(row)
     }
-
+  
     // Create the solution board with sorted tiles
     const solutionBoard: (Tile | null)[][] = []
     tileIndex = 0
@@ -87,7 +96,7 @@ const SlidePuzzle: React.FC = () => {
       }
       solutionBoard.push(row)
     }
-
+  
     setBoard(newBoard)
     setSolution(solutionBoard)
     setEmptyPosition({ row: GRID_SIZE - 1, col: GRID_SIZE - 1 })
