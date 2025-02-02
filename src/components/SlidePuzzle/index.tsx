@@ -33,6 +33,7 @@ const SlidePuzzle: React.FC = () => {
   const [board, setBoard] = useState<(Tile | null)[][]>([])
   const [emptyPosition, setEmptyPosition] = useState<Position>({ row: GRID_SIZE - 1, col: GRID_SIZE - 1 })
   const [solution, setSolution] = useState<(Tile | null)[][]>([])
+  const [isSolved, setIsSolved] = useState(false)
 
   // Initialize the puzzle board
   const initializeBoard = useCallback(() => {
@@ -102,9 +103,27 @@ const SlidePuzzle: React.FC = () => {
     setEmptyPosition({ row: GRID_SIZE - 1, col: GRID_SIZE - 1 })
   }, [])
 
+  // Check if puzzle is solved
+  const checkPuzzleSolved = useCallback((newBoard: (Tile | null)[][]) => {
+    if (!solution.length) return false
+    
+    for (let i = 0; i < GRID_SIZE; i++) {
+      for (let j = 0; j < GRID_SIZE; j++) {
+        const currentTile = newBoard[i][j]
+        const solutionTile = solution[i][j]
+        
+        if (!currentTile && !solutionTile) continue // Both empty tiles
+        if (!currentTile || !solutionTile) return false // One empty, one not
+        if (currentTile.id !== solutionTile.id) return false
+      }
+    }
+    return true
+  }, [solution])
+
   // Initialize on mount
   useEffect(() => {
     initializeBoard()
+    setIsSolved(false)
   }, [initializeBoard])
 
   // Check if a tile can be moved
@@ -153,7 +172,7 @@ const SlidePuzzle: React.FC = () => {
         newBoard[row][col] = null
       } else if (row > emptyPosition.row) {
         const clickedTile = newBoard[row][col]
-        for (let i = emptyPosition.row + 1; i <= row; i++) {
+        for (let i = emptyPosition.row + 1; i <= row; i--) {
           newBoard[i - 1][col] = newBoard[i][col]
         }
         newBoard[row][col] = null
@@ -162,6 +181,9 @@ const SlidePuzzle: React.FC = () => {
   
     setBoard(newBoard)
     setEmptyPosition({ row, col })
+    
+    // Check if puzzle is solved after move
+    setIsSolved(checkPuzzleSolved(newBoard))
   }
 
   // Solve all but last tile
@@ -172,6 +194,7 @@ const SlidePuzzle: React.FC = () => {
     newBoard[GRID_SIZE - 1][GRID_SIZE - 1] = null
     setBoard(newBoard)
     setEmptyPosition({ row: GRID_SIZE - 1, col: GRID_SIZE - 1 })
+    setIsSolved(false) // Ensure we reset the solved state
   }
 
   return (
@@ -179,18 +202,40 @@ const SlidePuzzle: React.FC = () => {
       <h1 className="text-3xl font-bold text-gray-800">Puzzle Board</h1>
       
       <div className="flex space-x-4">
-        <button
-          onClick={initializeBoard}
-          className="rounded-full bg-emerald-500 px-6 py-2 text-white hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
-        >
-          Randomize
-        </button>
-        <button
-          onClick={solveAllButLast}
-          className="rounded-full bg-blue-500 px-6 py-2 text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        >
-          Solve All But Last
-        </button>
+        {isSolved ? (
+          <>
+            <div className="flex items-center rounded-lg bg-green-100 px-6 py-2 text-green-800">
+              <span role="img" aria-label="celebration" className="mr-2">
+                🎉
+              </span>
+              Congratulations! Puzzle Solved!
+            </div>
+            <button
+              onClick={() => {
+                initializeBoard()
+                setIsSolved(false)
+              }}
+              className="rounded-full bg-indigo-500 px-6 py-2 text-white hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            >
+              Start Over
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={initializeBoard}
+              className="rounded-full bg-emerald-500 px-6 py-2 text-white hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+            >
+              Randomize
+            </button>
+            <button
+              onClick={solveAllButLast}
+              className="rounded-full bg-blue-500 px-6 py-2 text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              Solve All But Last
+            </button>
+          </>
+        )}
       </div>
 
       <div className="rounded-lg bg-white p-6 shadow-lg">
