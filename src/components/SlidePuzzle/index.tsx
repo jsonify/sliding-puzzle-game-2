@@ -140,7 +140,6 @@ const SlidePuzzle: React.FC = () => {
     )
   }
   
-  // Update the moveTile function:
   const moveTile = (row: number, col: number) => {
     if (!canMoveTile(row, col)) return
   
@@ -167,7 +166,7 @@ const SlidePuzzle: React.FC = () => {
         }
         newBoard[row][col] = null
       } else if (row > emptyPosition.row) {
-        for (let i = emptyPosition.row + 1; i <= row; i--) {
+        for (let i = emptyPosition.row + 1; i <= row; i++) {  // Fixed: Removed the -- and changed to ++
           newBoard[i - 1][col] = newBoard[i][col]
         }
         newBoard[row][col] = null
@@ -176,7 +175,7 @@ const SlidePuzzle: React.FC = () => {
   
     setBoard(newBoard)
     setEmptyPosition({ row, col })
-
+  
     // Check if puzzle is solved after move
     const isSolvedNow = checkPuzzleSolved(newBoard)
     console.log('Checking puzzle solved:', { row, col, isSolvedNow })
@@ -187,14 +186,21 @@ const SlidePuzzle: React.FC = () => {
   const solveAllButLast = () => {
     if (!solution.length) return
     
-    const newBoard = [...solution.map(row => [...row])]
-    // Move the last tile one position left from its solution position
-    const lastTile = newBoard[GRID_SIZE - 1][GRID_SIZE - 1]
-    newBoard[GRID_SIZE - 1][GRID_SIZE - 1] = newBoard[GRID_SIZE - 1][GRID_SIZE - 2]
-    newBoard[GRID_SIZE - 1][GRID_SIZE - 2] = null
+    // Create a copy of the solution board
+    const newBoard = solution.map(row => row.map(tile => tile))
+    
+    // Swap the last two tiles
+    const lastRowIndex = GRID_SIZE - 1
+    const secondLastColIndex = GRID_SIZE - 2
+    const lastColIndex = GRID_SIZE - 1
+    
+    // Move empty space to second-to-last position
+    newBoard[lastRowIndex][secondLastColIndex] = null
+    // Move the last tile to the last position
+    newBoard[lastRowIndex][lastColIndex] = solution[lastRowIndex][secondLastColIndex]
     
     setBoard(newBoard)
-    setEmptyPosition({ row: GRID_SIZE - 1, col: GRID_SIZE - 2 })
+    setEmptyPosition({ row: lastRowIndex, col: secondLastColIndex })
     setIsSolved(false)
   }
 

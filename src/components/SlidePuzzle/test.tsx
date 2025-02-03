@@ -216,7 +216,7 @@ describe('<SlidePuzzle />', () => {
     expect(colorCounts.size).toBe(6)
   })
 
-  it('shows success message when puzzle is solved', () => {
+  it('shows success message when puzzle is solved', async () => {
     render(<SlidePuzzle />)
     
     // Click "Solve All But Last" to get to a near-solved state
@@ -225,69 +225,93 @@ describe('<SlidePuzzle />', () => {
     // Verify no success message yet
     expect(screen.queryByTestId('success-message')).not.toBeInTheDocument()
     
-    // Get movable tiles
-    const movableTiles = screen.getAllByRole('button')
-      .filter(tile => !(tile as HTMLButtonElement).disabled)
-      .filter(tile => !tile.getAttribute('aria-label')?.includes('solution'))
+    // Get the last tile (it should be in the last position)
+    const tiles = getPuzzleTiles()
+    const lastTile = tiles[tiles.length - 1]
     
-    // Move the last tile
-    fireEvent.click(movableTiles[0])
+    // Move the last tile (this should solve the puzzle)
+    fireEvent.click(lastTile)
     
-    // Check for success message using test-id and text content
-    const successMessage = screen.getByTestId('success-message')
+    // Wait for the success message
+    const successMessage = await screen.findByTestId('success-message')
     expect(successMessage).toBeInTheDocument()
     expect(successMessage).toHaveTextContent('Congratulations')
     expect(successMessage).toHaveTextContent('Puzzle Solved')
     expect(screen.getByRole('button', { name: /start over/i })).toBeInTheDocument()
   })
   
-it('resets the puzzle when clicking start over', () => {
-render(<SlidePuzzle />)
+  it('resets the puzzle when clicking start over', async () => {
+    render(<SlidePuzzle />)
+    
+    // Get to a solved state first
+    fireEvent.click(screen.getByRole('button', { name: /solve all but last/i }))
+    const tiles = getPuzzleTiles()
+    const lastTile = tiles[tiles.length - 1]
+    fireEvent.click(lastTile)
+    
+    // Wait for success message
+    const successMessage = await screen.findByTestId('success-message')
+    expect(successMessage).toBeInTheDocument()
+    
+    // Click start over
+    fireEvent.click(screen.getByRole('button', { name: /start over/i }))
+    
+    // Success message should be gone
+    expect(screen.queryByTestId('success-message')).not.toBeInTheDocument()
+    
+    // Verify the game controls are back
+    expect(screen.getByRole('button', { name: /randomize/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /solve all but last/i })).toBeInTheDocument()
+  })
+  
+  it('properly checks puzzle completion', async () => {
+    render(<SlidePuzzle />)
+    
+    // Get to a nearly solved state
+    fireEvent.click(screen.getByRole('button', { name: /solve all but last/i }))
+    
+    // Verify we're not in a solved state yet
+    expect(screen.queryByTestId('success-message')).not.toBeInTheDocument()
+    
+    // Get the last tile
+    const tiles = getPuzzleTiles()
+    const lastTile = tiles[tiles.length - 1]
+    
+    // Move the last tile (this should solve the puzzle)
+    fireEvent.click(lastTile)
+    
+    // Wait for success message
+    const successMessage = await screen.findByTestId('success-message')
+    expect(successMessage).toBeInTheDocument()
+    expect(successMessage).toHaveTextContent('Congratulations')
+    expect(successMessage).toHaveTextContent('Puzzle Solved')
+  })
 
-// Get to a solved state first
-fireEvent.click(screen.getByRole('button', { name: /solve all but last/i }))
-const movableTile = screen.getAllByRole('button')
-    .filter(tile => !(tile as HTMLButtonElement).disabled)
-    .filter(tile => !tile.getAttribute('aria-label')?.includes('solution'))[0]
-fireEvent.click(movableTile)
-
-// Wait for success state using test-id
-const successMessage = screen.getByTestId('success-message')
-expect(successMessage).toBeInTheDocument()
-expect(successMessage).toHaveTextContent('Congratulations')
-
-// Click start over
-fireEvent.click(screen.getByRole('button', { name: /start over/i }))
-
-// Success message should be gone
-expect(screen.queryByTestId('success-message')).not.toBeInTheDocument()
-
-// Verify the game controls are back
-expect(screen.getByRole('button', { name: /randomize/i })).toBeInTheDocument()
-expect(screen.getByRole('button', { name: /solve all but last/i })).toBeInTheDocument()
-})
-
-it('properly checks puzzle completion', () => {
-render(<SlidePuzzle />)
-
-// Get to a nearly solved state
-fireEvent.click(screen.getByRole('button', { name: /solve all but last/i }))
-
-// Verify we're not in a solved state yet
-expect(screen.queryByTestId('success-message')).not.toBeInTheDocument()
-
-// Get movable tiles
-const movableTiles = screen.getAllByRole('button')
-    .filter(tile => !(tile as HTMLButtonElement).disabled)
-    .filter(tile => !tile.getAttribute('aria-label')?.includes('solution'))
-
-// Move the last tile
-fireEvent.click(movableTiles[0])
-
-// Now we should see the success message
-const successMessage = screen.getByTestId('success-message')
-expect(successMessage).toBeInTheDocument()
-expect(successMessage).toHaveTextContent('Congratulations')
-expect(successMessage).toHaveTextContent('Puzzle Solved')
-})
+  it('allows moving tiles in bottom row after vertical movement', () => {
+    render(<SlidePuzzle />)
+    
+    // Get to a known state with empty tile at bottom right
+    const solveAllButLastButton = screen.getByRole('button', { name: /solve all but last/i })
+    fireEvent.click(solveAllButLastButton)
+    
+    // Get all tiles
+    const tiles = getPuzzleTiles()
+    
+    // Find tile directly above empty space (row 4, col 4)
+    const tileAboveEmpty = tiles[19] // 5x4 = 20th tile (0-based index)
+    
+    // Move tile down
+    fireEvent.click(tileAboveEmpty)
+    
+    // Now try to move a tile in the bottom row
+    const bottomRowTile = tiles[20] // First tile in bottom row
+    
+    // Should be able to click without error
+    expect(() => {
+      fireEvent.click(bottomRowTile)
+    }).not.toThrow()
+    
+    // Verify the tile is still movable after vertical movement
+    expect(bottomRowTile).not.toBeDisabled()
+  })
 })
