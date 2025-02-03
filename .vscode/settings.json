@@ -15,5 +15,16 @@
   "window.commandCenter": true,
   "terminal.integrated.enablePersistentSessions": true,
   "terminal.integrated.gpuAcceleration": "on",
-  "terminal.integrated.tabs.enabled": true
+  "terminal.integrated.tabs.enabled": true,
+  "git.terminalGitEditor": true,
+  "terminal.integrated.automationProfile.linux": {},
+  "terminal.integrated.automationProfile.osx": {},
+  "terminal.integrated.automationProfile.windows": {},
+  "git.openRepositoryInParentFolders": "always",
+  "git.allowNoVerifyCommit": true,
+  "git.branchProtection": [
+    "main",
+    "master"
+  ],
+  "git.followTagsWhenSync": true
 }
