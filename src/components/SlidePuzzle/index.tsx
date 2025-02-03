@@ -105,19 +105,23 @@ const SlidePuzzle: React.FC = () => {
 
   // Check if puzzle is solved
   const checkPuzzleSolved = useCallback((newBoard: (Tile | null)[][]) => {
-    if (!solution.length) return false
-    
-    for (let i = 0; i < GRID_SIZE; i++) {
-      for (let j = 0; j < GRID_SIZE; j++) {
-        const currentTile = newBoard[i][j]
-        const solutionTile = solution[i][j]
+    // Check if all tiles except the last position match the solution
+    const isMatchingSolution = solution.every((row, i) =>
+      row.every((solutionTile, j) => {
+        // Skip checking the last position
+        if (i === GRID_SIZE - 1 && j === GRID_SIZE - 1) return true
         
-        if (!currentTile && !solutionTile) continue // Both empty tiles
-        if (!currentTile || !solutionTile) return false // One empty, one not
-        if (currentTile.id !== solutionTile.id) return false
-      }
-    }
-    return true
+        const currentTile = newBoard[i][j]
+        // Both tiles should be null or both should have matching IDs
+        return (!currentTile && !solutionTile) || (currentTile?.id === solutionTile?.id)
+      })
+    )
+
+    // Check if the empty space is in the correct position
+    const isEmptySpaceCorrect = !newBoard[GRID_SIZE - 1][GRID_SIZE - 1]
+
+    // Consider the puzzle solved if all tiles match and empty space is correct
+    return isMatchingSolution && isEmptySpaceCorrect
   }, [solution])
 
   // Initialize on mount
@@ -144,34 +148,25 @@ const SlidePuzzle: React.FC = () => {
     
     if (row === emptyPosition.row) {
       if (col < emptyPosition.col) {
-        // Store clicked tile
-        const clickedTile = newBoard[row][col]
         // Shift tiles left, starting from the empty position
         for (let i = emptyPosition.col - 1; i >= col; i--) {
           newBoard[row][i + 1] = newBoard[row][i]
         }
-        // Place empty tile at clicked position
         newBoard[row][col] = null
       } else if (col > emptyPosition.col) {
-        // Store clicked tile
-        const clickedTile = newBoard[row][col]
         // Shift tiles right, starting from the empty position
         for (let i = emptyPosition.col + 1; i <= col; i++) {
           newBoard[row][i - 1] = newBoard[row][i]
         }
-        // Place empty tile at clicked position
         newBoard[row][col] = null
       }
     } else if (col === emptyPosition.col) {
-      // Similar logic for vertical movement
       if (row < emptyPosition.row) {
-        const clickedTile = newBoard[row][col]
         for (let i = emptyPosition.row - 1; i >= row; i--) {
           newBoard[i + 1][col] = newBoard[i][col]
         }
         newBoard[row][col] = null
       } else if (row > emptyPosition.row) {
-        const clickedTile = newBoard[row][col]
         for (let i = emptyPosition.row + 1; i <= row; i--) {
           newBoard[i - 1][col] = newBoard[i][col]
         }
@@ -181,9 +176,11 @@ const SlidePuzzle: React.FC = () => {
   
     setBoard(newBoard)
     setEmptyPosition({ row, col })
-    
+
     // Check if puzzle is solved after move
-    setIsSolved(checkPuzzleSolved(newBoard))
+    const isSolvedNow = checkPuzzleSolved(newBoard)
+    console.log('Checking puzzle solved:', { row, col, isSolvedNow })
+    setIsSolved(isSolvedNow)
   }
 
   // Solve all but last tile
@@ -191,10 +188,14 @@ const SlidePuzzle: React.FC = () => {
     if (!solution.length) return
     
     const newBoard = [...solution.map(row => [...row])]
-    newBoard[GRID_SIZE - 1][GRID_SIZE - 1] = null
+    // Move the last tile one position left from its solution position
+    const lastTile = newBoard[GRID_SIZE - 1][GRID_SIZE - 1]
+    newBoard[GRID_SIZE - 1][GRID_SIZE - 1] = newBoard[GRID_SIZE - 1][GRID_SIZE - 2]
+    newBoard[GRID_SIZE - 1][GRID_SIZE - 2] = null
+    
     setBoard(newBoard)
-    setEmptyPosition({ row: GRID_SIZE - 1, col: GRID_SIZE - 1 })
-    setIsSolved(false) // Ensure we reset the solved state
+    setEmptyPosition({ row: GRID_SIZE - 1, col: GRID_SIZE - 2 })
+    setIsSolved(false)
   }
 
   return (
@@ -204,7 +205,7 @@ const SlidePuzzle: React.FC = () => {
       <div className="flex space-x-4">
         {isSolved ? (
           <>
-            <div className="flex items-center rounded-lg bg-green-100 px-6 py-2 text-green-800">
+            <div className="flex items-center rounded-lg bg-green-100 px-6 py-2 text-green-800" data-testid="success-message">
               <span role="img" aria-label="celebration" className="mr-2">
                 🎉
               </span>

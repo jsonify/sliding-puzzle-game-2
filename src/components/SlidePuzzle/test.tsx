@@ -241,53 +241,53 @@ describe('<SlidePuzzle />', () => {
     expect(screen.getByRole('button', { name: /start over/i })).toBeInTheDocument()
   })
   
-  it('resets the puzzle when clicking start over', () => {
-  render(<SlidePuzzle />)
+it('resets the puzzle when clicking start over', () => {
+render(<SlidePuzzle />)
 
-  // Get to a solved state first
-  fireEvent.click(screen.getByRole('button', { name: /solve all but last/i }))
-  const movableTile = screen.getAllByRole('button')
-      .filter(tile => !(tile as HTMLButtonElement).disabled)
-      .filter(tile => !tile.getAttribute('aria-label')?.includes('solution'))[0]
-  fireEvent.click(movableTile)
+// Get to a solved state first
+fireEvent.click(screen.getByRole('button', { name: /solve all but last/i }))
+const movableTile = screen.getAllByRole('button')
+    .filter(tile => !(tile as HTMLButtonElement).disabled)
+    .filter(tile => !tile.getAttribute('aria-label')?.includes('solution'))[0]
+fireEvent.click(movableTile)
 
-  // Wait for success state using test-id
-  const successMessage = screen.getByTestId('success-message')
-  expect(successMessage).toBeInTheDocument()
-  expect(successMessage).toHaveTextContent('Congratulations')
+// Wait for success state using test-id
+const successMessage = screen.getByTestId('success-message')
+expect(successMessage).toBeInTheDocument()
+expect(successMessage).toHaveTextContent('Congratulations')
 
-  // Click start over
-  fireEvent.click(screen.getByRole('button', { name: /start over/i }))
+// Click start over
+fireEvent.click(screen.getByRole('button', { name: /start over/i }))
 
-  // Success message should be gone
-  expect(screen.queryByTestId('success-message')).not.toBeInTheDocument()
+// Success message should be gone
+expect(screen.queryByTestId('success-message')).not.toBeInTheDocument()
 
-  // Verify the game controls are back
-  expect(screen.getByRole('button', { name: /randomize/i })).toBeInTheDocument()
-  expect(screen.getByRole('button', { name: /solve all but last/i })).toBeInTheDocument()
-  })
+// Verify the game controls are back
+expect(screen.getByRole('button', { name: /randomize/i })).toBeInTheDocument()
+expect(screen.getByRole('button', { name: /solve all but last/i })).toBeInTheDocument()
+})
 
-  it('properly checks puzzle completion', () => {
-  render(<SlidePuzzle />)
+it('properly checks puzzle completion', () => {
+render(<SlidePuzzle />)
 
-  // Get to a nearly solved state
-  fireEvent.click(screen.getByRole('button', { name: /solve all but last/i }))
+// Get to a nearly solved state
+fireEvent.click(screen.getByRole('button', { name: /solve all but last/i }))
 
-  // Verify we're not in a solved state yet
-  expect(screen.queryByTestId('success-message')).not.toBeInTheDocument()
+// Verify we're not in a solved state yet
+expect(screen.queryByTestId('success-message')).not.toBeInTheDocument()
 
-  // Get movable tiles
-  const movableTiles = screen.getAllByRole('button')
-      .filter(tile => !(tile as HTMLButtonElement).disabled)
-      .filter(tile => !tile.getAttribute('aria-label')?.includes('solution'))
+// Get movable tiles
+const movableTiles = screen.getAllByRole('button')
+    .filter(tile => !(tile as HTMLButtonElement).disabled)
+    .filter(tile => !tile.getAttribute('aria-label')?.includes('solution'))
 
-  // Move the last tile
-  fireEvent.click(movableTiles[0])
+// Move the last tile
+fireEvent.click(movableTiles[0])
 
-  // Now we should see the success message
-  const successMessage = screen.getByTestId('success-message')
-  expect(successMessage).toBeInTheDocument()
-  expect(successMessage).toHaveTextContent('Congratulations')
-  expect(successMessage).toHaveTextContent('Puzzle Solved')
-  })
+// Now we should see the success message
+const successMessage = screen.getByTestId('success-message')
+expect(successMessage).toBeInTheDocument()
+expect(successMessage).toHaveTextContent('Congratulations')
+expect(successMessage).toHaveTextContent('Puzzle Solved')
+})
 })
