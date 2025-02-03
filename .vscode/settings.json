@@ -6,5 +6,14 @@
     "*.css": "tailwindcss"
   },
   "git.enableSmartCommit": true,
-  "git.postCommitCommand": "push"
+  "git.postCommitCommand": "push",
+  "git.showPushSuccessNotification": true,
+  "terminal.integrated.showExitAlert": true,
+  "terminal.integrated.persistentSessionReviveProcess": "onExit",
+  "git.terminalAuthentication": true,
+  "terminal.integrated.defaultLocation": "view",
+  "window.commandCenter": true,
+  "terminal.integrated.enablePersistentSessions": true,
+  "terminal.integrated.gpuAcceleration": "on",
+  "terminal.integrated.tabs.enabled": true
 }
