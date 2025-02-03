@@ -4,27 +4,5 @@
   },
   "files.associations": {
     "*.css": "tailwindcss"
-  },
-  "git.enableSmartCommit": true,
-  "git.postCommitCommand": "push",
-  "git.showPushSuccessNotification": true,
-  "terminal.integrated.showExitAlert": true,
-  "terminal.integrated.persistentSessionReviveProcess": "onExit",
-  "git.terminalAuthentication": true,
-  "terminal.integrated.defaultLocation": "view",
-  "window.commandCenter": true,
-  "terminal.integrated.enablePersistentSessions": true,
-  "terminal.integrated.gpuAcceleration": "on",
-  "terminal.integrated.tabs.enabled": true,
-  "git.terminalGitEditor": true,
-  "terminal.integrated.automationProfile.linux": {},
-  "terminal.integrated.automationProfile.osx": {},
-  "terminal.integrated.automationProfile.windows": {},
-  "git.openRepositoryInParentFolders": "always",
-  "git.allowNoVerifyCommit": true,
-  "git.branchProtection": [
-    "main",
-    "master"
-  ],
-  "git.followTagsWhenSync": true
+  }
 }
