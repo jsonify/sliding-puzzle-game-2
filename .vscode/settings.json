@@ -4,5 +4,7 @@
   },
   "files.associations": {
     "*.css": "tailwindcss"
-  }
+  },
+  "git.enableSmartCommit": true,
+  "git.postCommitCommand": "push"
 }
