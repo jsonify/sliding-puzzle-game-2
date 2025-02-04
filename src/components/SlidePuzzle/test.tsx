@@ -61,15 +61,30 @@ describe('<SlidePuzzle />', () => {
       tile.getAttribute('aria-label') === 'Empty tile'
     )
 
-  it('renders the puzzle board with correct layout', () => {
-    render(<SlidePuzzle />)
-    
-    expect(screen.getByText('Puzzle Board')).toBeInTheDocument()
-    expect(screen.getByText('Solution')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /randomize/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /solve all but last/i })).toBeInTheDocument()
-    expect(getPuzzleTiles()).toHaveLength(25)
-  })
+    it('initializes with correct board layout', () => {
+      render(<SlidePuzzle />)
+      
+      // Get all tiles
+      const tiles = getPuzzleTiles()
+      
+      // Should have exactly 25 spaces (5x5 grid)
+      expect(tiles).toHaveLength(25)
+      
+      // Should have exactly one empty tile
+      const emptyTiles = tiles.filter(tile => 
+        tile.getAttribute('aria-label') === 'Empty tile'
+      )
+      expect(emptyTiles).toHaveLength(1)
+      
+      // Should have exactly 24 numbered tiles (no duplicates)
+      const numberedTiles = tiles
+        .map(tile => tile.getAttribute('aria-label'))
+        .filter(label => label?.includes('Tile '))
+        .map(label => parseInt(label!.match(/\d+/)![0]))
+      
+      expect(numberedTiles).toHaveLength(24)
+      expect(new Set(numberedTiles).size).toBe(24) // No duplicates
+    })
 
   it('initializes with exactly one empty tile', () => {
     render(<SlidePuzzle />)

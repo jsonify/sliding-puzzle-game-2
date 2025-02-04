@@ -28,6 +28,18 @@ const colorToTailwind: Record<TileColor, string> = {
   teal: 'bg-teal-400'
 }
 
+// Helper function to find empty position
+const findEmptyPosition = (board: (Tile | null)[][]): Position | null => {
+  for (let i = 0; i < GRID_SIZE; i++) {
+    for (let j = 0; j < GRID_SIZE; j++) {
+      if (board[i][j] === null) {
+        return { row: i, col: j }
+      }
+    }
+  }
+  return null
+}
+
 const SlidePuzzle: React.FC = () => {
   // State for the puzzle board
   const [board, setBoard] = useState<(Tile | null)[][]>([])
@@ -58,24 +70,24 @@ const SlidePuzzle: React.FC = () => {
       return newArray
     }
     
-    // Create sorted tiles for solution
-    const sortedTiles = [...tiles].sort((a, b) => a.id - b.id)
-    
-    // Shuffle multiple times for more randomness
-    let shuffledTiles = [...tiles]
-    for (let i = 0; i < 10; i++) {
-      shuffledTiles = shuffle(shuffledTiles)
+    // Ensure we have exactly 24 tiles (25 cells - 1 empty)
+    if (tiles.length !== 24) {
+      console.error('Invalid number of tiles:', tiles.length)
+      return
     }
     
-    // Create initial board with shuffled tiles
-    let newBoard: (Tile | null)[][] = []
+    // Single shuffle with Fisher-Yates
+    const shuffledTiles = shuffle([...tiles])
+    
+    // Create the board placing all tiles except the last cell
+    const newBoard: (Tile | null)[][] = []
     let tileIndex = 0
     
     for (let i = 0; i < GRID_SIZE; i++) {
       const row: (Tile | null)[] = []
       for (let j = 0; j < GRID_SIZE; j++) {
         if (i === GRID_SIZE - 1 && j === GRID_SIZE - 1) {
-          row.push(null) // Empty tile
+          row.push(null) // The last cell is always empty
         } else {
           row.push(shuffledTiles[tileIndex++])
         }
@@ -83,29 +95,38 @@ const SlidePuzzle: React.FC = () => {
       newBoard.push(row)
     }
     
-    // Make random moves to further randomize the board
-    const randomMoves = Math.floor(Math.random() * 50) + 25 // Between 25-75 moves
-    for (let i = 0; i < randomMoves; i++) {
-      // Find all movable tiles
-      const movableTiles: Position[] = []
-      for (let row = 0; row < GRID_SIZE; row++) {
-        for (let col = 0; col < GRID_SIZE; col++) {
-          if (canMoveTile(row, col) && newBoard[row][col] !== null) {
-            movableTiles.push({ row, col })
-          }
-        }
+    // Make 50 random valid moves to shuffle the board more
+    for (let i = 0; i < 50; i++) {
+      const emptyPos = findEmptyPosition(newBoard)
+      if (!emptyPos) {
+        console.error('No empty position found')
+        break
       }
-      
-      // Pick a random movable tile and move it
-      if (movableTiles.length > 0) {
-        const randomIndex = Math.floor(Math.random() * movableTiles.length)
-        const { row, col } = movableTiles[randomIndex]
-        moveTile(row, col, newBoard)
+
+      // Find adjacent tiles that can be moved
+      const { row, col } = emptyPos
+      const possibleMoves = [
+        { row: row - 1, col }, // up
+        { row: row + 1, col }, // down
+        { row, col: col - 1 }, // left
+        { row, col: col + 1 }  // right
+      ].filter(pos => 
+        pos.row >= 0 && pos.row < GRID_SIZE && 
+        pos.col >= 0 && pos.col < GRID_SIZE
+      )
+
+      if (possibleMoves.length > 0) {
+        // Pick a random valid move
+        const move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)]
+        // Swap tiles
+        const temp = newBoard[move.row][move.col]
+        newBoard[move.row][move.col] = null
+        newBoard[emptyPos.row][emptyPos.col] = temp
       }
     }
     
-  
     // Create the solution board with sorted tiles
+    const sortedTiles = [...tiles].sort((a, b) => a.id - b.id)
     const solutionBoard: (Tile | null)[][] = []
     tileIndex = 0
     
@@ -120,10 +141,11 @@ const SlidePuzzle: React.FC = () => {
       }
       solutionBoard.push(row)
     }
-  
+
     setBoard(newBoard)
     setSolution(solutionBoard)
     setEmptyPosition({ row: GRID_SIZE - 1, col: GRID_SIZE - 1 })
+    setIsSolved(false)
   }, [])
 
   // Check if puzzle is solved
@@ -150,23 +172,45 @@ const SlidePuzzle: React.FC = () => {
   // Initialize on mount
   useEffect(() => {
     initializeBoard()
-    setIsSolved(false)
   }, [initializeBoard])
 
   // Check if a tile can be moved
   const canMoveTile = (row: number, col: number): boolean => {
-    return (
-      // Same row as empty space
-      (row === emptyPosition.row) ||
-      // Same column as empty space
-      (col === emptyPosition.col)
-    )
+    // Cannot move tile that doesn't exist
+    if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) return false
+
+    // Cannot move the empty space itself
+    if (board[row][col] === null) return false
+
+    // Must be in same row or column as empty space
+    const sameRow = row === emptyPosition.row
+    const sameCol = col === emptyPosition.col
+
+    if (!sameRow && !sameCol) return false
+
+    // For row movement, all tiles between must be non-null
+    if (sameRow) {
+      const start = Math.min(col, emptyPosition.col)
+      const end = Math.max(col, emptyPosition.col)
+      return Array.from({ length: end - start - 1 }, (_, i) => start + i + 1)
+        .every(i => board[row][i] !== null)
+    }
+
+    // For column movement, all tiles between must be non-null
+    if (sameCol) {
+      const start = Math.min(row, emptyPosition.row)
+      const end = Math.max(row, emptyPosition.row)
+      return Array.from({ length: end - start - 1 }, (_, i) => start + i + 1)
+        .every(i => board[i][col] !== null)
+    }
+
+    return false
   }
   
-  const moveTile = (row: number, col: number, boardToUpdate?: (Tile | null)[][]) => {
+  const moveTile = (row: number, col: number) => {
     if (!canMoveTile(row, col)) return
   
-    const newBoard = boardToUpdate ? boardToUpdate : [...board.map(row => [...row])]
+    const newBoard = board.map(row => [...row])
     
     if (row === emptyPosition.row) {
       if (col < emptyPosition.col) {
@@ -189,7 +233,7 @@ const SlidePuzzle: React.FC = () => {
         }
         newBoard[row][col] = null
       } else if (row > emptyPosition.row) {
-        for (let i = emptyPosition.row + 1; i <= row; i++) {  // Fixed: Removed the -- and changed to ++
+        for (let i = emptyPosition.row + 1; i <= row; i++) {
           newBoard[i - 1][col] = newBoard[i][col]
         }
         newBoard[row][col] = null
