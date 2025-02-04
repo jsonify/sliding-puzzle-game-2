@@ -104,21 +104,6 @@ const SlidePuzzle: React.FC = () => {
       }
     }
     
-    // Create the board with randomized tiles
-    const newBoard: (Tile | null)[][] = []
-    let tileIndex = 0
-    
-    for (let i = 0; i < GRID_SIZE; i++) {
-      const row: (Tile | null)[] = []
-      for (let j = 0; j < GRID_SIZE; j++) {
-        if (i === GRID_SIZE - 1 && j === GRID_SIZE - 1) {
-          row.push(null) // Empty tile
-        } else {
-          row.push(shuffledTiles[tileIndex++])
-        }
-      }
-      newBoard.push(row)
-    }
   
     // Create the solution board with sorted tiles
     const solutionBoard: (Tile | null)[][] = []
