@@ -15,9 +15,15 @@ interface Position {
   col: number
 }
 
+// Types for grid sizes
+type GridSize = 3 | 4 | 5
+
 // Constants
-const GRID_SIZE = 5
-const COLORS: TileColor[] = ['red', 'blue', 'green', 'yellow', 'pink', 'teal']
+const GRID_CONFIGS = {
+  3: { colors: ['red', 'blue', 'green', 'yellow'], tilesPerColor: 2 },
+  4: { colors: ['red', 'blue', 'green', 'yellow', 'pink'], tilesPerColor: 3 },
+  5: { colors: ['red', 'blue', 'green', 'yellow', 'pink', 'teal'], tilesPerColor: 4 }
+} as const
 
 const colorToTailwind: Record<TileColor, string> = {
   red: 'bg-red-400',
@@ -29,9 +35,9 @@ const colorToTailwind: Record<TileColor, string> = {
 }
 
 // Helper function to find empty position
-const findEmptyPosition = (board: (Tile | null)[][]): Position | null => {
-  for (let i = 0; i < GRID_SIZE; i++) {
-    for (let j = 0; j < GRID_SIZE; j++) {
+const findEmptyPosition = (board: (Tile | null)[][], size: number): Position | null => {
+  for (let i = 0; i < size; i++) {
+    for (let j = 0; j < size; j++) {
       if (board[i][j] === null) {
         return { row: i, col: j }
       }
@@ -42,21 +48,28 @@ const findEmptyPosition = (board: (Tile | null)[][]): Position | null => {
 
 const SlidePuzzle: React.FC = () => {
   // State for the puzzle board
+  const [gridSize, setGridSize] = useState<GridSize>(3)
   const [board, setBoard] = useState<(Tile | null)[][]>([])
-  const [emptyPosition, setEmptyPosition] = useState<Position>({ row: GRID_SIZE - 1, col: GRID_SIZE - 1 })
+  const [emptyPosition, setEmptyPosition] = useState<Position>({ row: 2, col: 2 })
   const [solution, setSolution] = useState<(Tile | null)[][]>([])
   const [isSolved, setIsSolved] = useState(false)
 
+  // Get current grid configuration
+  const currentConfig = GRID_CONFIGS[gridSize]
+
   // Initialize the puzzle board
   const initializeBoard = useCallback(() => {
-    // Create an array of all tiles needed (4 of each color)
+    const { colors, tilesPerColor } = currentConfig
+    const totalTiles = gridSize * gridSize - 1 // Leave one empty space
+    
+    // Create an array of all tiles needed
     const tiles: Tile[] = []
     let id = 1
     
-    // Add exactly 4 tiles of each color
-    COLORS.forEach(color => {
-      for (let i = 0; i < 4; i++) {
-        tiles.push({ id: id++, color })
+    // Add tiles for each color
+    colors.forEach(color => {
+      for (let i = 0; i < tilesPerColor; i++) {
+        tiles.push({ id: id++, color: color as TileColor })
       }
     })
     
@@ -70,9 +83,9 @@ const SlidePuzzle: React.FC = () => {
       return newArray
     }
     
-    // Ensure we have exactly 24 tiles (25 cells - 1 empty)
-    if (tiles.length !== 24) {
-      console.error('Invalid number of tiles:', tiles.length)
+    // Ensure we have the correct number of tiles
+    if (tiles.length !== totalTiles) {
+      console.error('Invalid number of tiles:', tiles.length, 'expected:', totalTiles)
       return
     }
     
@@ -87,10 +100,10 @@ const SlidePuzzle: React.FC = () => {
     const newBoard: (Tile | null)[][] = []
     let tileIndex = 0
     
-    for (let i = 0; i < GRID_SIZE; i++) {
+    for (let i = 0; i < gridSize; i++) {
       const row: (Tile | null)[] = []
-      for (let j = 0; j < GRID_SIZE; j++) {
-        if (i === GRID_SIZE - 1 && j === GRID_SIZE - 1) {
+      for (let j = 0; j < gridSize; j++) {
+        if (i === gridSize - 1 && j === gridSize - 1) {
           row.push(null) // The last cell is always empty
         } else {
           row.push(shuffledTiles[tileIndex++])
@@ -98,10 +111,9 @@ const SlidePuzzle: React.FC = () => {
       }
       newBoard.push(row)
     }
-    
     // Make 200 random valid moves to shuffle the board more thoroughly
     for (let i = 0; i < 200; i++) {
-      const emptyPos = findEmptyPosition(newBoard)
+      const emptyPos = findEmptyPosition(newBoard, gridSize)
       if (!emptyPos) {
         console.error('No empty position found')
         break
@@ -115,8 +127,8 @@ const SlidePuzzle: React.FC = () => {
         { row, col: col - 1, dir: 'left' }, // left
         { row, col: col + 1, dir: 'right' }  // right
       ].filter(pos =>
-        pos.row >= 0 && pos.row < GRID_SIZE &&
-        pos.col >= 0 && pos.col < GRID_SIZE
+        pos.row >= 0 && pos.row < gridSize &&
+        pos.col >= 0 && pos.col < gridSize
       )
 
       if (possibleMoves.length > 0) {
@@ -144,10 +156,10 @@ const SlidePuzzle: React.FC = () => {
     const solutionBoard: (Tile | null)[][] = []
     tileIndex = 0
     
-    for (let i = 0; i < GRID_SIZE; i++) {
+    for (let i = 0; i < gridSize; i++) {
       const row: (Tile | null)[] = []
-      for (let j = 0; j < GRID_SIZE; j++) {
-        if (i === GRID_SIZE - 1 && j === GRID_SIZE - 1) {
+      for (let j = 0; j < gridSize; j++) {
+        if (i === gridSize - 1 && j === gridSize - 1) {
           row.push(null) // Empty tile
         } else {
           row.push(solutionTiles[tileIndex++])
@@ -158,9 +170,14 @@ const SlidePuzzle: React.FC = () => {
 
     setBoard(newBoard)
     setSolution(solutionBoard)
-    setEmptyPosition({ row: GRID_SIZE - 1, col: GRID_SIZE - 1 })
+    setEmptyPosition({ row: gridSize - 1, col: gridSize - 1 })
     setIsSolved(false)
-  }, [])
+  }, [gridSize, currentConfig])
+
+  // Reinitialize when grid size changes
+  useEffect(() => {
+    initializeBoard()
+  }, [gridSize, initializeBoard])
 
   // Check if puzzle is solved
   const checkPuzzleSolved = useCallback((newBoard: (Tile | null)[][]) => {
@@ -168,7 +185,7 @@ const SlidePuzzle: React.FC = () => {
     const isMatchingSolution = solution.every((row, i) =>
       row.every((solutionTile, j) => {
         // Skip checking the last position
-        if (i === GRID_SIZE - 1 && j === GRID_SIZE - 1) return true
+        if (i === gridSize - 1 && j === gridSize - 1) return true
         
         const currentTile = newBoard[i][j]
         // Both tiles should be null or both should have matching IDs
@@ -177,11 +194,11 @@ const SlidePuzzle: React.FC = () => {
     )
 
     // Check if the empty space is in the correct position
-    const isEmptySpaceCorrect = !newBoard[GRID_SIZE - 1][GRID_SIZE - 1]
+    const isEmptySpaceCorrect = !newBoard[gridSize - 1][gridSize - 1]
 
     // Consider the puzzle solved if all tiles match and empty space is correct
     return isMatchingSolution && isEmptySpaceCorrect
-  }, [solution])
+  }, [solution, gridSize])
 
   // Initialize on mount
   useEffect(() => {
@@ -191,7 +208,7 @@ const SlidePuzzle: React.FC = () => {
   // Check if a tile can be moved
   const canMoveTile = (row: number, col: number): boolean => {
     // Cannot move tile that doesn't exist
-    if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) return false
+    if (row < 0 || row >= gridSize || col < 0 || col >= gridSize) return false
 
     // Cannot move the empty space itself
     if (board[row][col] === null) return false
@@ -271,9 +288,9 @@ const SlidePuzzle: React.FC = () => {
     const newBoard = solution.map(row => row.map(tile => tile))
     
     // Swap the last two tiles
-    const lastRowIndex = GRID_SIZE - 1
-    const secondLastColIndex = GRID_SIZE - 2
-    const lastColIndex = GRID_SIZE - 1
+    const lastRowIndex = gridSize - 1
+    const secondLastColIndex = gridSize - 2
+    const lastColIndex = gridSize - 1
     
     // Move empty space to second-to-last position
     newBoard[lastRowIndex][secondLastColIndex] = null
@@ -289,7 +306,38 @@ const SlidePuzzle: React.FC = () => {
     <div className="flex flex-col items-center space-y-6">
       <h1 className="text-3xl font-bold text-gray-800">Puzzle Board</h1>
       
-      <div className="flex space-x-4">
+      <div className="flex flex-col items-center space-y-4">
+        <div className="flex space-x-4">
+          <button
+            onClick={() => setGridSize(3)}
+            className={classNames(
+              'rounded-full px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-offset-2',
+              gridSize === 3 ? 'bg-indigo-600' : 'bg-indigo-400 hover:bg-indigo-500'
+            )}
+          >
+            3x3
+          </button>
+          <button
+            onClick={() => setGridSize(4)}
+            className={classNames(
+              'rounded-full px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-offset-2',
+              gridSize === 4 ? 'bg-indigo-600' : 'bg-indigo-400 hover:bg-indigo-500'
+            )}
+          >
+            4x4
+          </button>
+          <button
+            onClick={() => setGridSize(5)}
+            className={classNames(
+              'rounded-full px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-offset-2',
+              gridSize === 5 ? 'bg-indigo-600' : 'bg-indigo-400 hover:bg-indigo-500'
+            )}
+          >
+            5x5
+          </button>
+        </div>
+        
+        <div className="flex space-x-4">
         {isSolved ? (
           <>
             <div className="flex items-center rounded-lg bg-green-100 px-6 py-2 text-green-800" data-testid="success-message">
@@ -327,14 +375,15 @@ const SlidePuzzle: React.FC = () => {
       </div>
 
       <div className="rounded-lg bg-white p-6 shadow-lg">
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}>
           {board.map((row, rowIndex) =>
             row.map((tile, colIndex) => (
               <button
                 key={`${rowIndex}-${colIndex}`}
                 onClick={() => moveTile(rowIndex, colIndex)}
                 className={classNames(
-                  'h-16 w-16 rounded-lg transition-all duration-200',
+                  gridSize === 3 ? 'h-24 w-24' : gridSize === 4 ? 'h-20 w-20' : 'h-16 w-16',
+                  'rounded-lg transition-all duration-200',
                   tile ? colorToTailwind[tile.color] : 'bg-gray-200',
                   canMoveTile(rowIndex, colIndex) ? 'cursor-pointer hover:scale-105' : 'cursor-not-allowed'
                 )}
@@ -348,13 +397,14 @@ const SlidePuzzle: React.FC = () => {
 
       <div className="mt-8">
         <h2 className="mb-4 text-xl font-bold text-gray-800">Solution</h2>
-        <div className="grid grid-cols-5 gap-1">
+        <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}>
           {solution.map((row, rowIndex) =>
             row.map((tile, colIndex) => (
               <button
                 key={`solution-${rowIndex}-${colIndex}`}
                 className={classNames(
-                  'h-8 w-8 rounded-lg',
+                  gridSize === 3 ? 'h-12 w-12' : gridSize === 4 ? 'h-10 w-10' : 'h-8 w-8',
+                  'rounded-lg',
                   tile ? colorToTailwind[tile.color] : 'bg-gray-200'
                 )}
                 aria-label={tile ? `solution ${tile.id}` : 'Empty solution tile'}
@@ -363,6 +413,7 @@ const SlidePuzzle: React.FC = () => {
           )}
         </div>
       </div>
+    </div>
     </div>
   )
 }
