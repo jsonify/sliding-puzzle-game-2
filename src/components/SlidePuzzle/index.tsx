@@ -139,8 +139,8 @@ const SlidePuzzle: React.FC = () => {
       }
     }
     
-    // Create the solution board with sorted tiles
-    const sortedTiles = [...tiles].sort((a, b) => a.id - b.id)
+    // Create the solution board with shuffled tiles
+    const solutionTiles = shuffle([...tiles])
     const solutionBoard: (Tile | null)[][] = []
     tileIndex = 0
     
@@ -150,7 +150,7 @@ const SlidePuzzle: React.FC = () => {
         if (i === GRID_SIZE - 1 && j === GRID_SIZE - 1) {
           row.push(null) // Empty tile
         } else {
-          row.push(sortedTiles[tileIndex++])
+          row.push(solutionTiles[tileIndex++])
         }
       }
       solutionBoard.push(row)
