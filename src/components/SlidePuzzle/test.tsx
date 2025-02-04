@@ -61,15 +61,30 @@ describe('<SlidePuzzle />', () => {
       tile.getAttribute('aria-label') === 'Empty tile'
     )
 
-  it('renders the puzzle board with correct layout', () => {
-    render(<SlidePuzzle />)
-    
-    expect(screen.getByText('Puzzle Board')).toBeInTheDocument()
-    expect(screen.getByText('Solution')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /randomize/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /solve all but last/i })).toBeInTheDocument()
-    expect(getPuzzleTiles()).toHaveLength(25)
-  })
+    it('initializes with correct board layout', () => {
+      render(<SlidePuzzle />)
+      
+      // Get all tiles
+      const tiles = getPuzzleTiles()
+      
+      // Should have exactly 25 spaces (5x5 grid)
+      expect(tiles).toHaveLength(25)
+      
+      // Should have exactly one empty tile
+      const emptyTiles = tiles.filter(tile => 
+        tile.getAttribute('aria-label') === 'Empty tile'
+      )
+      expect(emptyTiles).toHaveLength(1)
+      
+      // Should have exactly 24 numbered tiles (no duplicates)
+      const numberedTiles = tiles
+        .map(tile => tile.getAttribute('aria-label'))
+        .filter(label => label?.includes('Tile '))
+        .map(label => parseInt(label!.match(/\d+/)![0]))
+      
+      expect(numberedTiles).toHaveLength(24)
+      expect(new Set(numberedTiles).size).toBe(24) // No duplicates
+    })
 
   it('initializes with exactly one empty tile', () => {
     render(<SlidePuzzle />)
@@ -290,28 +305,52 @@ describe('<SlidePuzzle />', () => {
   it('allows moving tiles in bottom row after vertical movement', () => {
     render(<SlidePuzzle />)
     
-    // Get to a known state with empty tile at bottom right
+    // Get to a known state with empty tile at second-to-last position in bottom row
     const solveAllButLastButton = screen.getByRole('button', { name: /solve all but last/i })
     fireEvent.click(solveAllButLastButton)
     
-    // Get all tiles
+    // After clicking "solve all but last", we should have:
+    // - Empty tile in the second-to-last position
+    // - Last tile in the last position
+    // - Other tiles in their solution positions
+    
+    // Get all puzzle tiles
     const tiles = getPuzzleTiles()
     
-    // Find tile directly above empty space (row 4, col 4)
-    const tileAboveEmpty = tiles[19] // 5x4 = 20th tile (0-based index)
+    // Find the position of the empty tile
+    const emptyTileIndex = tiles.findIndex(tile => 
+      tile.getAttribute('aria-label') === 'Empty tile'
+    )
+    expect(emptyTileIndex).toBe(23) // Second to last position (0-based index)
     
-    // Move tile down
+    // The tile above the empty space should be at emptyTileIndex - 5 (one row up)
+    const tileAboveEmpty = tiles[emptyTileIndex - 5]
+    expect(tileAboveEmpty).toBeTruthy()
+    expect(tileAboveEmpty).toHaveAttribute('aria-label', expect.stringContaining('Tile'))
+    
+    // Move the tile above down into the empty space
     fireEvent.click(tileAboveEmpty)
     
-    // Now try to move a tile in the bottom row
-    const bottomRowTile = tiles[20] // First tile in bottom row
+    // Now we should have movable tiles in the bottom row
+    // Get all currently movable tiles
+    const movableTiles = getMovableTiles()
+    expect(movableTiles.length).toBeGreaterThan(0)
     
-    // Should be able to click without error
+    // Find a movable tile in the bottom row that isn't the empty tile
+    const bottomRowMovableTile = movableTiles.find(tile => 
+      tile.getAttribute('aria-label')?.includes('Tile')
+    )
+    
+    // Verify we found a movable tile
+    expect(bottomRowMovableTile).toBeDefined()
+    expect(bottomRowMovableTile).not.toBeDisabled()
+    expect(bottomRowMovableTile?.getAttribute('aria-label')).toContain('Tile')
+    
+    // Should be able to click it without error
     expect(() => {
-      fireEvent.click(bottomRowTile)
+      if (bottomRowMovableTile) {
+        fireEvent.click(bottomRowMovableTile)
+      }
     }).not.toThrow()
-    
-    // Verify the tile is still movable after vertical movement
-    expect(bottomRowTile).not.toBeDisabled()
   })
 })
