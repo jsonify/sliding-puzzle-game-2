@@ -58,13 +58,51 @@ const SlidePuzzle: React.FC = () => {
       return newArray
     }
     
-    // Keep shuffling until we get a different order than solution
-    let shuffledTiles: Tile[]
+    // Create sorted tiles for solution
     const sortedTiles = [...tiles].sort((a, b) => a.id - b.id)
     
-    do {
-      shuffledTiles = shuffle(tiles)
-    } while (shuffledTiles.every((tile, i) => tile.id === sortedTiles[i].id))
+    // Shuffle multiple times for more randomness
+    let shuffledTiles = [...tiles]
+    for (let i = 0; i < 10; i++) {
+      shuffledTiles = shuffle(shuffledTiles)
+    }
+    
+    // Create initial board with shuffled tiles
+    let newBoard: (Tile | null)[][] = []
+    let tileIndex = 0
+    
+    for (let i = 0; i < GRID_SIZE; i++) {
+      const row: (Tile | null)[] = []
+      for (let j = 0; j < GRID_SIZE; j++) {
+        if (i === GRID_SIZE - 1 && j === GRID_SIZE - 1) {
+          row.push(null) // Empty tile
+        } else {
+          row.push(shuffledTiles[tileIndex++])
+        }
+      }
+      newBoard.push(row)
+    }
+    
+    // Make random moves to further randomize the board
+    const randomMoves = Math.floor(Math.random() * 50) + 25 // Between 25-75 moves
+    for (let i = 0; i < randomMoves; i++) {
+      // Find all movable tiles
+      const movableTiles: Position[] = []
+      for (let row = 0; row < GRID_SIZE; row++) {
+        for (let col = 0; col < GRID_SIZE; col++) {
+          if (canMoveTile(row, col) && newBoard[row][col] !== null) {
+            movableTiles.push({ row, col })
+          }
+        }
+      }
+      
+      // Pick a random movable tile and move it
+      if (movableTiles.length > 0) {
+        const randomIndex = Math.floor(Math.random() * movableTiles.length)
+        const { row, col } = movableTiles[randomIndex]
+        moveTile(row, col, newBoard)
+      }
+    }
     
     // Create the board with randomized tiles
     const newBoard: (Tile | null)[][] = []
@@ -140,10 +178,10 @@ const SlidePuzzle: React.FC = () => {
     )
   }
   
-  const moveTile = (row: number, col: number) => {
+  const moveTile = (row: number, col: number, boardToUpdate?: (Tile | null)[][]) => {
     if (!canMoveTile(row, col)) return
   
-    const newBoard = [...board.map(row => [...row])]
+    const newBoard = boardToUpdate ? boardToUpdate : [...board.map(row => [...row])]
     
     if (row === emptyPosition.row) {
       if (col < emptyPosition.col) {
