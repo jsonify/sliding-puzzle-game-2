@@ -76,8 +76,12 @@ const SlidePuzzle: React.FC = () => {
       return
     }
     
-    // Single shuffle with Fisher-Yates
-    const shuffledTiles = shuffle([...tiles])
+    // Multiple shuffles for increased randomness
+    let shuffledTiles = [...tiles]
+    // Perform multiple shuffles
+    for (let i = 0; i < 3; i++) {
+      shuffledTiles = shuffle(shuffledTiles)
+    }
     
     // Create the board placing all tiles except the last cell
     const newBoard: (Tile | null)[][] = []
@@ -95,29 +99,39 @@ const SlidePuzzle: React.FC = () => {
       newBoard.push(row)
     }
     
-    // Make 50 random valid moves to shuffle the board more
-    for (let i = 0; i < 50; i++) {
+    // Make 200 random valid moves to shuffle the board more thoroughly
+    for (let i = 0; i < 200; i++) {
       const emptyPos = findEmptyPosition(newBoard)
       if (!emptyPos) {
         console.error('No empty position found')
         break
       }
 
-      // Find adjacent tiles that can be moved
+      // Find adjacent tiles that can be moved with direction tracking
       const { row, col } = emptyPos
       const possibleMoves = [
-        { row: row - 1, col }, // up
-        { row: row + 1, col }, // down
-        { row, col: col - 1 }, // left
-        { row, col: col + 1 }  // right
-      ].filter(pos => 
-        pos.row >= 0 && pos.row < GRID_SIZE && 
+        { row: row - 1, col, dir: 'up' }, // up
+        { row: row + 1, col, dir: 'down' }, // down
+        { row, col: col - 1, dir: 'left' }, // left
+        { row, col: col + 1, dir: 'right' }  // right
+      ].filter(pos =>
+        pos.row >= 0 && pos.row < GRID_SIZE &&
         pos.col >= 0 && pos.col < GRID_SIZE
       )
 
       if (possibleMoves.length > 0) {
-        // Pick a random valid move
-        const move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)]
+        // Add weights to moves to prevent back-and-forth patterns
+        const weightedMoves: typeof possibleMoves = []
+        possibleMoves.forEach(move => {
+          // Add each move multiple times based on position to create weighted randomness
+          const weight = Math.floor(Math.random() * 3) + 1 // 1-3 copies of each move
+          for (let w = 0; w < weight; w++) {
+            weightedMoves.push(move)
+          }
+        })
+        
+        // Pick a random move from the weighted list
+        const move = weightedMoves[Math.floor(Math.random() * weightedMoves.length)]
         // Swap tiles
         const temp = newBoard[move.row][move.col]
         newBoard[move.row][move.col] = null
@@ -125,8 +139,8 @@ const SlidePuzzle: React.FC = () => {
       }
     }
     
-    // Create the solution board with sorted tiles
-    const sortedTiles = [...tiles].sort((a, b) => a.id - b.id)
+    // Create the solution board with shuffled tiles
+    const solutionTiles = shuffle([...tiles])
     const solutionBoard: (Tile | null)[][] = []
     tileIndex = 0
     
@@ -136,7 +150,7 @@ const SlidePuzzle: React.FC = () => {
         if (i === GRID_SIZE - 1 && j === GRID_SIZE - 1) {
           row.push(null) // Empty tile
         } else {
-          row.push(sortedTiles[tileIndex++])
+          row.push(solutionTiles[tileIndex++])
         }
       }
       solutionBoard.push(row)
