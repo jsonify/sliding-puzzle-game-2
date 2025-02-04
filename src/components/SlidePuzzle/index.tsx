@@ -207,76 +207,40 @@ const SlidePuzzle: React.FC = () => {
 
   // Check if a tile can be moved
   const canMoveTile = (row: number, col: number): boolean => {
-    // Cannot move tile that doesn't exist
+    // Cannot move tile that doesn't exist or is outside the grid
     if (row < 0 || row >= gridSize || col < 0 || col >= gridSize) return false
 
     // Cannot move the empty space itself
     if (board[row][col] === null) return false
 
-    // Must be in same row or column as empty space
-    const sameRow = row === emptyPosition.row
-    const sameCol = col === emptyPosition.col
+    // Check if tile is in same row or column as empty space
+    const inSameRow = row === emptyPosition.row
+    const inSameCol = col === emptyPosition.col
+    
+    // Check if tile is adjacent to empty space
+    const isAdjacent = (
+      (inSameRow && Math.abs(col - emptyPosition.col) === 1) ||
+      (inSameCol && Math.abs(row - emptyPosition.row) === 1)
+    )
 
-    if (!sameRow && !sameCol) return false
-
-    // For row movement, all tiles between must be non-null
-    if (sameRow) {
-      const start = Math.min(col, emptyPosition.col)
-      const end = Math.max(col, emptyPosition.col)
-      return Array.from({ length: end - start - 1 }, (_, i) => start + i + 1)
-        .every(i => board[row][i] !== null)
-    }
-
-    // For column movement, all tiles between must be non-null
-    if (sameCol) {
-      const start = Math.min(row, emptyPosition.row)
-      const end = Math.max(row, emptyPosition.row)
-      return Array.from({ length: end - start - 1 }, (_, i) => start + i + 1)
-        .every(i => board[i][col] !== null)
-    }
-
-    return false
+    return isAdjacent
   }
   
   const moveTile = (row: number, col: number) => {
     if (!canMoveTile(row, col)) return
   
     const newBoard = board.map(row => [...row])
+    const clickedTile = newBoard[row][col]
     
-    if (row === emptyPosition.row) {
-      if (col < emptyPosition.col) {
-        // Shift tiles left, starting from the empty position
-        for (let i = emptyPosition.col - 1; i >= col; i--) {
-          newBoard[row][i + 1] = newBoard[row][i]
-        }
-        newBoard[row][col] = null
-      } else if (col > emptyPosition.col) {
-        // Shift tiles right, starting from the empty position
-        for (let i = emptyPosition.col + 1; i <= col; i++) {
-          newBoard[row][i - 1] = newBoard[row][i]
-        }
-        newBoard[row][col] = null
-      }
-    } else if (col === emptyPosition.col) {
-      if (row < emptyPosition.row) {
-        for (let i = emptyPosition.row - 1; i >= row; i--) {
-          newBoard[i + 1][col] = newBoard[i][col]
-        }
-        newBoard[row][col] = null
-      } else if (row > emptyPosition.row) {
-        for (let i = emptyPosition.row + 1; i <= row; i++) {
-          newBoard[i - 1][col] = newBoard[i][col]
-        }
-        newBoard[row][col] = null
-      }
-    }
-  
+    // Simple swap between clicked tile and empty space
+    newBoard[row][col] = null
+    newBoard[emptyPosition.row][emptyPosition.col] = clickedTile
+    
     setBoard(newBoard)
     setEmptyPosition({ row, col })
   
     // Check if puzzle is solved after move
     const isSolvedNow = checkPuzzleSolved(newBoard)
-    console.log('Checking puzzle solved:', { row, col, isSolvedNow })
     setIsSolved(isSolvedNow)
   }
 

@@ -104,6 +104,68 @@ describe('SlidePuzzle', () => {
   })
 
   describe('Tile Movement', () => {
+    it('allows movement of adjacent tiles in the same row as empty tile', () => {
+      render(<SlidePuzzle />)
+      const tiles = getPuzzleTiles()
+      const size = 3 // Default grid size
+      
+      // Find empty tile position
+      const emptyTileIndex = tiles.findIndex(tile => 
+        tile.getAttribute('aria-label') === 'Empty tile'
+      )
+      const emptyRow = Math.floor(emptyTileIndex / size)
+      const emptyCol = emptyTileIndex % size
+      
+      // Only adjacent tiles in the same row should be movable
+      tiles.forEach((tile, index) => {
+        const row = Math.floor(index / size)
+        const col = index % size
+        const isEmpty = tile.getAttribute('aria-label') === 'Empty tile'
+        
+        if (row === emptyRow && !isEmpty) {
+          // Only tiles directly adjacent to the empty space should be movable
+          if (Math.abs(col - emptyCol) === 1) {
+            expect(tile).not.toBeDisabled()
+            expect(tile).toHaveClass('cursor-pointer')
+          } else {
+            expect(tile).toBeDisabled()
+            expect(tile).toHaveClass('cursor-not-allowed')
+          }
+        }
+      })
+    })
+
+    it('allows movement of adjacent tiles in the same column as empty tile', () => {
+      render(<SlidePuzzle />)
+      const tiles = getPuzzleTiles()
+      const size = 3 // Default grid size
+      
+      // Find empty tile position
+      const emptyTileIndex = tiles.findIndex(tile => 
+        tile.getAttribute('aria-label') === 'Empty tile'
+      )
+      const emptyRow = Math.floor(emptyTileIndex / size)
+      const emptyCol = emptyTileIndex % size
+      
+      // Only adjacent tiles in the same column should be movable
+      tiles.forEach((tile, index) => {
+        const row = Math.floor(index / size)
+        const col = index % size
+        const isEmpty = tile.getAttribute('aria-label') === 'Empty tile'
+        
+        if (col === emptyCol && !isEmpty) {
+          // Only tiles directly adjacent to the empty space should be movable
+          if (Math.abs(row - emptyRow) === 1) {
+            expect(tile).not.toBeDisabled()
+            expect(tile).toHaveClass('cursor-pointer')
+          } else {
+            expect(tile).toBeDisabled()
+            expect(tile).toHaveClass('cursor-not-allowed')
+          }
+        }
+      })
+    })
+    
     it('maintains valid moves after grid size change', () => {
       render(<SlidePuzzle />)
       
